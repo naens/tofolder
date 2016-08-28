@@ -25,4 +25,4 @@ OK 2016-08-28
 *linux: install action in GNOME
 
 *suggest the most appropriate directory as default in folder list (based on filter string)
- directory with the longest common substring with the filter(?)
+ directory with the longest common substring with the filter string
