@@ -1,0 +1,28 @@
+*upload to git
+OK 2016-08-28
+
+*change .c to .cpp
+OK 2016-08-28
+
+*windows: compile and test
+
+*windows: add reg files
+
+*linux: icon
+
+*linux: install
+
+*windows: installer
+
+*change wchar_t to uint32
+
+*32bitchar instead of QString
+
+*linux: install action in thunar
+
+*linux: install action in KDE
+
+*linux: install action in GNOME
+
+*suggest the most appropriate directory as default in folder list (based on filter string)
+ directory with the longest common substring with the filter(?)

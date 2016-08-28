@@ -11,7 +11,7 @@
 
 #include <wchar.h>
 
-#include "gst/gst.h"
+#include "gst.h"
 
 QStringList selFiles;
 QStringList dirFiles;

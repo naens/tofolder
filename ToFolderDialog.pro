@@ -15,16 +15,19 @@ TEMPLATE = app
 SOURCES += main.cpp\
         tofolderdialog.cpp \
     folderdialog.cpp \
-    gst/gst.c
+    gst.cpp
 
 HEADERS  += tofolderdialog.h \
     folderdialog.h \
-    gst/gst.h
+    gst.h
 
 FORMS    += tofolderdialog.ui \
     folderdialog.ui
 
-DISTFILES +=
+DISTFILES += \
+    TODO \
+    LICENSE \
+    README.md
 
 win32 {
     RC_ICONS = icons/tofolder.ico

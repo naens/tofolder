@@ -51,31 +51,31 @@ int DYN_SZ = 8;
 
 struct node *create_node(int id)
 {
-  struct node *node = malloc(sizeof(struct node));
+  struct node *node = (struct node *)malloc(sizeof(struct node));
   node->id = id;
   node->edge_list_sz = 0;
   /* node->edge_list = malloc(DYN_SZ * sizeof(struct edge *)); created by check_dyn*/
   node->sl = 0;
   node->sid_list_sz = 0;
-  node->sid_list = malloc(DYN_SZ * sizeof(int));
+  node->sid_list = (int *)malloc(DYN_SZ * sizeof(int));
   node->parent = 0;
   return node;
 }
 
 struct gst *new_gst()
 {
-  struct gst *gst = malloc(sizeof(struct gst));
-  gst->sa_sid_sz = malloc(DYN_SZ * sizeof(int));
+  struct gst *gst = (struct gst *)malloc(sizeof(struct gst));
+  gst->sa_sid_sz = (int *)malloc(DYN_SZ * sizeof(int));
   gst->sa_sid_sz[0] = 0;	/* first string empty */
-  gst->sa = malloc(DYN_SZ * sizeof(wchar_t *));
-  gst->sa[0] = malloc(DYN_SZ * sizeof(wchar_t));
+  gst->sa = (wchar_t **)malloc(DYN_SZ * sizeof(wchar_t *));
+  gst->sa[0] = (wchar_t *)malloc(DYN_SZ * sizeof(wchar_t));
   gst->sa[0][0] = 0;
   gst->sid = 0;
   gst->n = 0;
   gst->rem = 0;
   gst->root = create_node(1);
   gst->root->sl = gst->root;
-  gst->ap = malloc(sizeof(struct ap));
+  gst->ap = (struct ap *)malloc(sizeof(struct ap));
   gst->ap->node = gst->root;
   gst->ap->ch = 0;
   gst->ap->pos = 0;
@@ -161,7 +161,7 @@ void add_sid(struct node *node, int sid)
     {
       node->sid_list[node->sid_list_sz++] = sid;
       if (node->sid_list_sz % DYN_SZ == 0)
-	node->sid_list = realloc(node->sid_list, (node->sid_list_sz + DYN_SZ) * sizeof(int));
+    node->sid_list = (int *)realloc(node->sid_list, (node->sid_list_sz + DYN_SZ) * sizeof(int));
     }
 }
 
@@ -257,7 +257,7 @@ void check_dyn(void **v, int sz, int inc_sz, int el_sz)
 
 void add_edge(struct node *node, int sid, int from, int to, struct node *end)
 {
-  struct edge *edge = malloc(sizeof(struct edge));
+  struct edge *edge = (struct edge *)malloc(sizeof(struct edge));
   edge->sid = sid;
   edge->from = from;
   edge->to = to;
@@ -439,8 +439,8 @@ void print_node(struct node *node, wchar_t **sa, int *sa_sid_sz, int pnb, int *v
 	{
 	  if (pnb == 0)
 	    {
-	      int *new_vlast = malloc(2 * sizeof(int));
-	      int *new_vlength = malloc(2 * sizeof(int));
+          int *new_vlast = (int *)malloc(2 * sizeof(int));
+          int *new_vlength = (int *)malloc(2 * sizeof(int));
 	      new_vlast[0] = 1;
 	      new_vlength[0] = node_length - 1;
 	      new_vlast[1] = i == node->edge_list_sz - 1;
@@ -451,8 +451,8 @@ void print_node(struct node *node, wchar_t **sa, int *sa_sid_sz, int pnb, int *v
 	    }
 	  else
 	    {
-	      int *new_vlast = malloc((pnb + 1) * sizeof(int));
-	      int *new_vlength = malloc((pnb + 1) * sizeof(int));
+          int *new_vlast = (int *)malloc((pnb + 1) * sizeof(int));
+          int *new_vlength = (int *)malloc((pnb + 1) * sizeof(int));
 	      memcpy(new_vlast, vlast, pnb * sizeof(int));
 	      memcpy(new_vlength, vlength, pnb * sizeof(int));
 	      new_vlast[pnb] = i == node->edge_list_sz - 1;
@@ -504,7 +504,7 @@ void line_end(struct gst *gst)	/* insert end character, create empty string */
   check_dyn((void **)&gst->sa_sid_sz, gst->sid + 1,  DYN_SZ, sizeof (int));
   gst->sid++;
 
-  gst->sa[gst->sid] = malloc(DYN_SZ * sizeof(wchar_t));
+  gst->sa[gst->sid] = (wchar_t *)malloc(DYN_SZ * sizeof(wchar_t));
   gst->sa_sid_sz[gst->sid] = 0;	/* new string is empty */
   gst->sa[gst->sid][0] = 0;
   gst->n = 0;
@@ -525,7 +525,7 @@ void add_string(struct gst *gst, wchar_t *str)
   
   /* realloc string */
   int len = wcslen(str);
-  gst->sa[gst->sid] = realloc(gst->sa[gst->sid], (len + 1) * sizeof(wchar_t));
+  gst->sa[gst->sid] = (wchar_t *)realloc(gst->sa[gst->sid], (len + 1) * sizeof(wchar_t));
   memset(gst->sa[gst->sid], 0, sizeof(wchar_t) * (len + 1));
 
   /* insert string */
@@ -544,7 +544,7 @@ wchar_t *edge_string(wchar_t **sa, struct edge *edge)
   int to = edge->end ? edge-> to : (int)wcslen(sa[edge->sid]);
   int edge_len = to - edge->from;
   /* wprintf(L"edge_string: %d:%d,%d\n", edge->sid, edge->from, edge->to); */
-  wchar_t *edge_str = malloc (sizeof(wchar_t) * (edge_len + 1));
+  wchar_t *edge_str = (wchar_t *)malloc (sizeof(wchar_t) * (edge_len + 1));
   wmemcpy(edge_str, &sa[edge->sid][edge->from], edge_len);
   edge_str[edge_len] = 0;
   /* wprintf(L"edge_string: found=\"%S\"\n", edge_str); */
@@ -586,7 +586,7 @@ void edge_strings(wchar_t **sa, struct edge *edge, int *esz, wchar_t ***ess, int
 	  wchar_t *ns = nss[*esz];
 	  /* wprintf(L"EDGE [3] %d:%d nsz=%d esz=%d\n", edge->sid, edge->from, nsz, *esz); */
 	  int len = wcslen(edge_str) + wcslen(ns);
-	  (*ess)[*esz] = malloc(sizeof(wchar_t) * (len + 1));
+      (*ess)[*esz] = (wchar_t *)malloc(sizeof(wchar_t) * (len + 1));
 	  wcscpy((*ess)[*esz], edge_str);
 	  wcscat((*ess)[*esz], ns);
 	  /* wprintf(L"EDGE %d:%d insert string %d %S\n", edge->sid, edge->from, *esz, (*ess)[*esz]); */
@@ -639,8 +639,8 @@ void gst_strings(struct gst *gst, int *count, wchar_t ***strings)
 {
   if (gst->sid == 1 && gst->sa_sid_sz[gst->sid] == 0)
     {
-      *strings = malloc(sizeof(wchar_t *));
-      (*strings)[0] = malloc(sizeof(wchar_t) * (gst->sa_sid_sz[0] + 1));
+      *strings = (wchar_t **)malloc(sizeof(wchar_t *));
+      (*strings)[0] = (wchar_t *)malloc(sizeof(wchar_t) * (gst->sa_sid_sz[0] + 1));
       wcscpy((*strings)[0], gst->sa[0]);
       *count = 1;
     }
@@ -670,14 +670,14 @@ void longest_strings(struct gst *gst, int *count, wchar_t ***strings)
 
   if (count_max)
     {
-      *strings = malloc(sizeof(wchar_t *) * count_max);
+      *strings = (wchar_t **)malloc(sizeof(wchar_t *) * count_max);
       int n = 0;
       for (i = 0; i < tmp_count; i++)
     {
 	  int len = wcslen(tmp_strings[i]);
 	  if (len == max_len)
 	    {
-	      (*strings)[n] = malloc(sizeof(wchar_t) * (len + 1));
+          (*strings)[n] = (wchar_t *)malloc(sizeof(wchar_t) * (len + 1));
 	      wcscpy((*strings)[n++], tmp_strings[i]);
 	    }
 	  free(tmp_strings[i]);	  

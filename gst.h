@@ -1,11 +1,6 @@
 #ifndef GST_H
 #define GST_H
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct gst;
 
 
@@ -24,9 +19,5 @@ void line_end(struct gst *gst);
 void gst_strings(struct gst *gst, int *count, wchar_t ***strings);
 
 void longest_strings(struct gst *gst, int *count, wchar_t ***strings);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* GST_H */
