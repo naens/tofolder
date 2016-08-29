@@ -9,8 +9,6 @@
 #include <QMessageBox>
 #include <QInputDialog>
 
-#include <wchar.h>
-
 #include "gst.h"
 
 QStringList selFiles;
@@ -96,22 +94,19 @@ void ToFolderDialog::showEvent(QShowEvent *)
 
     foreach (QString fn, selFiles) {
 
-        int len = fn.length();
-        wchar_t *str = (wchar_t *)malloc(sizeof(wchar_t) * (len + 1));
-        fn.toLower().toWCharArray(str);
-        str[len] = 0;
+        QVector<uint> v = fn.toLower().toUcs4();
+        v.append(0);
 
-        add_string(gst, str);
-        free(str);
+        add_string(gst, v.data());
     }
 
     int str_count;
-    wchar_t **strings;
+    uint **strings;
     longest_strings(gst, &str_count, &strings);
 
     if (str_count)
     {
-        QString longString = QString::fromWCharArray(strings[0], -1);
+        QString longString = QString::fromUcs4(strings[0], -1);
         longString.remove(QRegExp("[.\\- ]*$"));
         longString.remove(QRegExp("^[.\\- ]*"));
 

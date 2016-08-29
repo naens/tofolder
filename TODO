@@ -4,17 +4,18 @@ OK 2016-08-28
 *change .c to .cpp
 OK 2016-08-28
 
+*change wchar_t to uint (ucs4 strings in  gst)
+OK 2016-08-29
+
 *windows: compile and test
 
-*windows: add reg files
+*windows: add reg files = action install
 
 *linux: icon
 
 *linux: install
 
 *windows: installer
-
-*change wchar_t to uint32
 
 *32bitchar instead of QString
 
@@ -26,3 +27,7 @@ OK 2016-08-28
 
 *suggest the most appropriate directory as default in folder list (based on filter string)
  directory with the longest common substring with the filter string
+
+*linux: create rpm
+
+*linux: create deb
