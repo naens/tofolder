@@ -11,13 +11,11 @@ OK 2016-08-29
 
 *windows: add reg files = action install
 
-*linux: icon
-
 *linux: install
 
-*windows: installer
+*linux: icon
 
-*32bitchar instead of QString
+*windows: installer
 
 *linux: install action in thunar
 
@@ -25,9 +23,13 @@ OK 2016-08-29
 
 *linux: install action in GNOME
 
-*suggest the most appropriate directory as default in folder list (based on filter string)
- directory with the longest common substring with the filter string
+*guess directory:
+suggest the most appropriate directory as default
+in folder list (based on filter string) directory
+with the longest common substring with the filter string
 
-*linux: create rpm
+?linux: create rpm
 
-*linux: create deb
+?linux: create deb
+
+?32bitchar instead of QString

@@ -27,7 +27,8 @@ FORMS    += tofolderdialog.ui \
 DISTFILES += \
     TODO \
     LICENSE \
-    README.md
+    README.md \
+    icons/tofolder.ico
 
 win32 {
     RC_ICONS = icons/tofolder.ico
