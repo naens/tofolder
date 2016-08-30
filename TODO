@@ -8,6 +8,7 @@ OK 2016-08-28
 OK 2016-08-29
 
 *windows: compile and test
+OK 2016-08-30
 
 *windows: add reg files = action install
 
@@ -33,3 +34,6 @@ with the longest common substring with the filter string
 ?linux: create deb
 
 ?32bitchar instead of QString
+
+?windows: static build
+
