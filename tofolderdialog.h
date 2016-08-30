@@ -37,7 +37,7 @@ private slots:
 
 private:
     Ui::ToFolderDialog *ui;
-    FolderDialog * folderDialog;
+    FolderDialog *folderDialog = 0;
 
     QIcon fileIcon(const QString &filename);
     void updateList();
