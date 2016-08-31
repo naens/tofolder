@@ -472,7 +472,7 @@ void node_strings(uint **sa, struct node *node, int *nsz, uint ***nss, int str_n
   /* wprintf(L"NODE@%d  [3] nsz=%d\n", node->id, *nsz); */
   /* wprintf(L"NODE@%d  [3] nsz=%d ", node->id, *nsz); */
   /* for(int z = 0; z < *nsz; z++) wprintf(L" \"%S\"", (*nss)[z]); */
-  /* wprintf(L"\n");        */
+  /* wprintf(L"\n");	*/
 }
 
 void gst_strings(struct gst *gst, int *count, uint ***strings)
@@ -517,8 +517,8 @@ void longest_strings(struct gst *gst, int *count, uint ***strings)
       int len = ucs4len(tmp_strings[i]);
 	  if (len == max_len)
 	    {
-          (*strings)[n] = (uint *)malloc(sizeof(uint) * (len + 1));
-          memcpy((*strings)[n++], tmp_strings[i], (len + 1) * sizeof(uint));
+            (*strings)[n] = (uint *)malloc(sizeof(uint) * (len + 1));
+            memcpy((*strings)[n++], tmp_strings[i], (len + 1) * sizeof(uint));
 	    }
 	  free(tmp_strings[i]);	  
 	}

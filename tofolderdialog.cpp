@@ -33,6 +33,10 @@ ToFolderDialog::ToFolderDialog(QWidget *parent) :
     if (folders.size() == 0) {
         ui->toolButton->setVisible(false);
     }
+
+#ifdef __gnu_linux__
+    setWindowIcon(QIcon(":/icons/tofolder.ico"));
+#endif
 }
 
 /*
@@ -49,22 +53,22 @@ void ToFolderDialog::updateList()
 
     QStringList newSel = selFiles.filter(filter, Qt::CaseInsensitive);
 
-    ui->listWidget->clear();                //clear list widget
+    ui->listWidget->clear();		//clear list widget
 
     foreach (QString fp, dirFiles) {     //insert back in list widget
-        QFileInfo info(fp);
-        QString fn = info.fileName();
-        if (fn.toLower().contains(filter.toLower())) {
-            QFileIconProvider ip;
-            QListWidgetItem *pItem = new QListWidgetItem;
-            pItem->setIcon(ip.icon(info));
-            pItem->setText(fn);
-            ui->listWidget->addItem(pItem);
-            if (newSel.contains(fn)) {
-                pItem->setSelected(true);
-                ui->listWidget->setCurrentItem(pItem);
-            }
+    QFileInfo info(fp);
+    QString fn = info.fileName();
+    if (fn.toLower().contains(filter.toLower())) {
+        QFileIconProvider ip;
+        QListWidgetItem *pItem = new QListWidgetItem;
+        pItem->setIcon(ip.icon(info));
+        pItem->setText(fn);
+        ui->listWidget->addItem(pItem);
+        if (newSel.contains(fn)) {
+        pItem->setSelected(true);
+        ui->listWidget->setCurrentItem(pItem);
         }
+    }
     }
     selFiles = newSel;
     sel_active = true;
@@ -94,10 +98,10 @@ void ToFolderDialog::showEvent(QShowEvent *)
 
     foreach (QString fn, selFiles) {
 
-        QVector<uint> v = fn.toLower().toUcs4();
-        v.append(0);
+    QVector<uint> v = fn.toLower().toUcs4();
+    v.append(0);
 
-        add_string(gst, v.data());
+    add_string(gst, v.data());
     }
 
     int str_count;
@@ -106,33 +110,33 @@ void ToFolderDialog::showEvent(QShowEvent *)
 
     if (str_count)
     {
-        QString longString = QString::fromUcs4(strings[0], -1);
-        longString.remove(QRegExp("[.\\- ]*$"));
-        longString.remove(QRegExp("^[.\\- ]*"));
+    QString longString = QString::fromUcs4(strings[0], -1);
+    longString.remove(QRegExp("[.\\- ]*$"));
+    longString.remove(QRegExp("^[.\\- ]*"));
 
-        /* find original case string */
-        QString origCaseString;
-        foreach (QString fp, dirFiles) {     //insert back in list widget
-            QFileInfo info(fp);
-            QString fn = info.fileName();
-            int index = fn.indexOf(longString, 0, Qt::CaseInsensitive);
-            if (index >= 0) {
-                origCaseString = fn.mid(index, longString.length());
-                break;
-            }
+    /* find original case string */
+    QString origCaseString;
+    foreach (QString fp, dirFiles) {     //insert back in list widget
+        QFileInfo info(fp);
+        QString fn = info.fileName();
+        int index = fn.indexOf(longString, 0, Qt::CaseInsensitive);
+        if (index >= 0) {
+        origCaseString = fn.mid(index, longString.length());
+        break;
         }
+    }
 
-        ui->fileLineEdit->setText(origCaseString);
-        ui->folderLineEdit->setText(origCaseString);
-        updateList();
+    ui->fileLineEdit->setText(origCaseString);
+    ui->folderLineEdit->setText(origCaseString);
+    updateList();
     }
 
     for (int j = 0; j < str_count; j++) {
-        free(strings[j]);
+    free(strings[j]);
     }
 
     if (str_count) {
-        free(strings);
+    free(strings);
     }
 
     del_gst(gst);
@@ -157,69 +161,69 @@ void ToFolderDialog::on_fileLineEdit_textEdited(const QString)
 void ToFolderDialog::on_buttonBox_accepted()
 {
     if (selFiles.size() < 1) {
-        return;
+    return;
     }
     QString dirName = ui->folderLineEdit->text();
     QRegularExpression regex("^[\\w\\-. ]+$");
     if (!regex.match(dirName).hasMatch()) {
-        QMessageBox::warning(this, tr("Invalid folder name"), tr("The folder name is not valid."));
-        return;
+    QMessageBox::warning(this, tr("Invalid folder name"), tr("The folder name is not valid."));
+    return;
     }
     QString baseDir = QDir::currentPath();
 
     QFileInfo dir(baseDir, dirName);
     if (dir.exists()) {
-        if (dir.isFile()) {
-            QMessageBox::warning(this, tr("Invalid folder name"), tr("File exists."));
-            return;
-        } else if (dir.isDir()) {
-            /* directory already exists */
-            QStringList commonFiles;
-            foreach (QString fn, selFiles) {
-                QFileInfo fdestInfo(dir.absoluteFilePath(), fn);
-                if (fdestInfo.exists()) {
-                    commonFiles.append(fn);
-                }
-            }
+    if (dir.isFile()) {
+        QMessageBox::warning(this, tr("Invalid folder name"), tr("File exists."));
+        return;
+    } else if (dir.isDir()) {
+        /* directory already exists */
+        QStringList commonFiles;
+        foreach (QString fn, selFiles) {
+        QFileInfo fdestInfo(dir.absoluteFilePath(), fn);
+        if (fdestInfo.exists()) {
+            commonFiles.append(fn);
+        }
+        }
 
-            if (commonFiles.size() > 0) { /* confirm merge & replace */
-                QMessageBox msgBox(this);
-                msgBox.setInformativeText("Confirm replace the following files in destination folder?\n\n" + commonFiles.join("\n"));
-                msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
-                msgBox.setDefaultButton(QMessageBox::Ok);
-                msgBox.setMinimumWidth(1200);
-                int ret = msgBox.exec();
-                if (ret != QMessageBox::Ok) {
-                    return;
-                }
-            } else {
-                if (!folder_from_list) {    /* confirm move to existing folder */
-                    QMessageBox msgBox(this);
-                    msgBox.setInformativeText("Confirm move files to existing folder " + dirName);
-                    msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
-                    msgBox.setDefaultButton(QMessageBox::Ok);
-                    msgBox.setMinimumWidth(1200);
-                    int ret = msgBox.exec();
-                    if (ret != QMessageBox::Ok) {
-                        return;
-                    }
-                }
+        if (commonFiles.size() > 0) { /* confirm merge & replace */
+        QMessageBox msgBox(this);
+        msgBox.setInformativeText("Confirm replace the following files in destination folder?\n\n" + commonFiles.join("\n"));
+        msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+        msgBox.setDefaultButton(QMessageBox::Ok);
+        msgBox.setMinimumWidth(1200);
+        int ret = msgBox.exec();
+        if (ret != QMessageBox::Ok) {
+            return;
+        }
+        } else {
+        if (!folder_from_list) {    /* confirm move to existing folder */
+            QMessageBox msgBox(this);
+            msgBox.setInformativeText("Confirm move files to existing folder " + dirName);
+            msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+            msgBox.setDefaultButton(QMessageBox::Ok);
+            msgBox.setMinimumWidth(1200);
+            int ret = msgBox.exec();
+            if (ret != QMessageBox::Ok) {
+            return;
             }
         }
+        }
+    }
     } else if (!QDir().mkdir(dir.absoluteFilePath())) {
-        QMessageBox::warning(this, tr("Folder not created"), tr("The folder could not be created."));
-        return;
+    QMessageBox::warning(this, tr("Folder not created"), tr("The folder could not be created."));
+    return;
     }
 
     /* move files! */
     foreach (QString fn, selFiles) {
-        QFileInfo fpathInfo(baseDir, fn);
-        QFileInfo fdestInfo(dir.absoluteFilePath(), fn);
-        QString fpath = fpathInfo.absoluteFilePath();
-        QString fdest = fdestInfo.absoluteFilePath();
-        QFile f(fpath);
-        f.rename(fdest);
-        QApplication::quit();
+    QFileInfo fpathInfo(baseDir, fn);
+    QFileInfo fdestInfo(dir.absoluteFilePath(), fn);
+    QString fpath = fpathInfo.absoluteFilePath();
+    QString fdest = fdestInfo.absoluteFilePath();
+    QFile f(fpath);
+    f.rename(fdest);
+    QApplication::quit();
     }
 }
 
@@ -227,10 +231,10 @@ void ToFolderDialog::on_listWidget_itemSelectionChanged()
 {
    if (sel_active)
     {
-        selFiles.clear();
-        foreach (QListWidgetItem *pItem, ui->listWidget->selectedItems()) {
-            selFiles.append(pItem->text());
-        }
+    selFiles.clear();
+    foreach (QListWidgetItem *pItem, ui->listWidget->selectedItems()) {
+        selFiles.append(pItem->text());
+    }
     }
 }
 
@@ -243,11 +247,11 @@ void ToFolderDialog::on_toolButton_clicked()
 {
     if (!folderDialog)
     {
-        folderDialog = new FolderDialog(this);
-        QStringList folders = QDir::current().entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::LocaleAware);
-        folderDialog->setFolders(folders);
-        connect(folderDialog, SIGNAL(accepted()), this, SLOT(folderDialogSelection()));
-        folder_from_list = true;
+    folderDialog = new FolderDialog(this);
+    QStringList folders = QDir::current().entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::LocaleAware);
+    folderDialog->setFolders(folders);
+    connect(folderDialog, SIGNAL(accepted()), this, SLOT(folderDialogSelection()));
+    folder_from_list = true;
     }
     folderDialog->show();
 }

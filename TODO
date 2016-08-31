@@ -10,11 +10,10 @@ OK 2016-08-29
 *windows: compile and test
 OK 2016-08-30
 
-*windows: add reg files = action install
-
-*linux: install
-
 *linux: icon
+OK 2016-08-31
+
+*windows: add reg files = action install
 
 *windows: installer
 
@@ -23,6 +22,8 @@ OK 2016-08-30
 *linux: install action in KDE
 
 *linux: install action in GNOME
+
+*linux: desktop / start menu icon
 
 *guess directory:
 suggest the most appropriate directory as default
@@ -37,3 +38,4 @@ with the longest common substring with the filter string
 
 ?windows: static build
 
+?osx: installer

@@ -10,7 +10,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = ToFolderDialog
 TEMPLATE = app
-
+RESOURCES += tofolder_res.qrc
 
 SOURCES += main.cpp\
         tofolderdialog.cpp \
@@ -30,6 +30,8 @@ DISTFILES += \
     README.md \
     icons/tofolder.ico
 
-win32 {
+#win32
     RC_ICONS = icons/tofolder.ico
-}
+
+#os x
+ICON = icons/tofolder.icns

@@ -14,7 +14,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>ToFolderDialog</string>
+   <string>ToFolder</string>
   </property>
   <property name="modal">
    <bool>false</bool>

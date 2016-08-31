@@ -59,9 +59,9 @@ void FolderDialog::selectExit()
         pItem = ui->listWidget->currentItem();
     }
     if (pItem != NULL) {
-        selectedFolder = pItem->text();
-        emit accepted();
-        this->hide();
+    selectedFolder = pItem->text();
+    emit accepted();
+    this->hide();
     }
 }
 
@@ -70,9 +70,9 @@ void FolderDialog::changeEvent(QEvent *event)
     QWidget::changeEvent(event);
     if (event->type() == QEvent::ActivationChange)
     {
-        if(!this->isActiveWindow()) {
-            this->hide();
-        }
+    if(!this->isActiveWindow()) {
+        this->hide();
+    }
     }
 }
 
@@ -80,14 +80,14 @@ void FolderDialog::keyPressEvent(QKeyEvent* event)
 {
     switch ((event->key())) {
     case Qt::Key_Escape:
-        this->hide();
-        break;
+    this->hide();
+    break;
     case Qt::Key_Enter:
     case Qt::Key_Return:
-        selectExit();
-        break;
+    selectExit();
+    break;
     default:
-        break;
+    break;
     }
 }
 
