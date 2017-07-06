@@ -2,16 +2,39 @@
 Purpose: create a folder based on files and move to folder
 
 * Parts of program
- * gst.o: little gst library for string comparison
- * utf8 from/to ucs32 converter
+ * pedit-util (text tools and library: gst, unicode conversion...)
  * tofolder_cli: command line version of the application
  * tofolder_gui: gui version of the application
- * tofolder: combines both and chooses the most appropriate version
-depending on context
+
+ * tofolder: combines both and chooses the most appropriate version depending
+on context
+
+* Description of what it does
+** Input
+The input are file names that belong to a directory.  In CLI mode they are
+taken from cli input, and in GUI mode they are the files the user has
+selected before launching the program.
+
+** Work
+The program, using the gst module, finds the longuest common substring of
+the file names and proposes it as a name for the subfolder.  If there are
+more files than selected that match the substring, they are also selected.
+
+The input file names can be files or directories, belonging to the same
+subdirectory.  Sometimes the user wants to move files to an existing
+directory.  For this reason, if there is a directory that has a name similar
+to the proposed directory name, it is not selected and its name is proposed
+instead.
+
+** Things done by user before moving files
+The user can modify the proposed name and the list of the file by adding or
+removing the files from the list.  The user can also choose a different path
+for the loation of the subfolder.
 
 * to do items
+ * libpedit
  * cli
- * gui
+ * gui (using GTK)
  * tofolder executable
  * gui linux integration
  * gui windows integration
