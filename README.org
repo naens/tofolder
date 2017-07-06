@@ -1,1 +1,20 @@
-# tofolder
+#+TITLE: tofolder
+Purpose: create a folder based on files and move to folder
+
+* Parts of program
+ * gst.o: little gst library for string comparison
+ * utf8 from/to ucs32 converter
+ * tofolder_cli: command line version of the application
+ * tofolder_gui: gui version of the application
+ * tofolder: combines both and chooses the most appropriate version
+depending on context
+
+* to do items
+ * cli
+ * gui
+ * tofolder executable
+ * gui linux integration
+ * gui windows integration
+ * ~make install~ linux installation
+ * linux packages: arch, crux, deb, rpm
+ * windows installer
