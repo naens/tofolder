@@ -15,6 +15,17 @@ The input are file names that belong to a directory.  In CLI mode they are
 taken from cli input, and in GUI mode they are the files the user has
 selected before launching the program.
 
+The user can select files / directories to move and the destination.  The
+first list is the list of files to be moves, these are the files in the
+directory that contain the common substring.  The second list is a list of
+directories that contain the common substring.  The user can add
+or remove files in the first list and select the directory in the second list
+or create a new directory.  When a directory is selected in the second list,
+it is automatically removed from the first list.  If another directory is
+selected, whether the previous is selected or not depends on its state
+before being selected.  By default all the files and directories are
+selected.
+
 ** Work
 The program, using the gst module, finds the longuest common substring of
 the file names and proposes it as a name for the subfolder.  If there are
