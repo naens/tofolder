@@ -42,6 +42,38 @@ The user can modify the proposed name and the list of the file by adding or
 removing the files from the list.  The user can also choose a different path
 for the loation of the subfolder.
 
+* Implementation
+** CLI
+Using ~ncurses~:
+#+BEGIN_SRC
++---------------------+
+| List of files       |
++---------------------+
+|    x <file1>        |
+|    x <file2>        |
+|      <file3>        |
+|    x <file4>        |
+|    ...              |
++=====================+
+| List of directories |
++---------------------+
+|      subdir1        |
+|    o subdir2        |
+|      subdir3        |
+|    ...              |
++---------------------+
+| new: _______        |
++---------------------+
+#+END_SRC
+
+ * Both lists are scrollable if needed (horizontally and vertically).
+ * Each lists takes not more space than needed.
+ * The cursor selects a line by highlighting it.
+ * There is no scrollbars.
+
+** GUI
+~to do~
+
 * to do items
  * libpedit
  * cli
