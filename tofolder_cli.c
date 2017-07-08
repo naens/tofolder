@@ -126,6 +126,15 @@ default_case:
   }
 }
 
+void endcurses(FORM *form, FIELD **field)
+{
+  unpost_form(form);
+  free_form(form);
+  free_field(field[0]);
+  free_field(field[1]); 
+  endwin();
+}
+
 int main(int argc, char **argv)
 {
   if (argc == 1)
@@ -134,7 +143,7 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  printf("input strings:\n");
+//  printf("input strings:\n");
   int nargs = argc - 1;
   uint32_t *strs32[nargs];
   for (int i = 0; i < nargs; i++)
@@ -142,22 +151,19 @@ int main(int argc, char **argv)
     char *fn = basename(argv[i + 1]);
     int len8 = utf8strlen(fn);
     int fnlen = strlen(fn);
-    printf("    \"%s\"\n", fn);
+//    printf("    \"%s\"\n", fn);
 
     strs32[i] = malloc(sizeof (uint32_t) * (len8 + 1));
     str_utf8_to_ucs32(fn, strs32[i]);
   }
   char *dir = dirname(argv[1]);
   int dirlen = strlen(dir);
-  printf("dir: \"%s\"\n", dir);
+//  printf("dir: \"%s\"\n", dir);
 
   struct gst *gst = gst_new();
 
   for (int i = 0; i < nargs; i++)
-  {
-    printf("i=%d\n", i);
     gst_add_string(gst, strs32[i]);
-  }
 
   int ls_cnt;
   uint32_t **lss;
@@ -172,7 +178,7 @@ int main(int argc, char **argv)
   
   char lcs[0x1000];
   str_ucs32_to_utf8(lss[0], lcs);
-  printf("found longest string: \"%s\"\n", lcs);
+//  printf("found longest string: \"%s\"\n", lcs);
   for (int i = 0; i < ls_cnt; i++)
     free(lss[i]);
   gst_free(gst);
@@ -198,7 +204,7 @@ int main(int argc, char **argv)
      else if (S_ISDIR(statbuf.st_mode))
        ndirs++;
 
-     printf("%s\n", dirent->d_name);
+//     printf("%s\n", dirent->d_name);
   }
 
   /* get names */
@@ -230,7 +236,7 @@ int main(int argc, char **argv)
 
   closedir(d);
 
-
+  /* TODO: special cases: no files to move, no potential destination dir*/
 
   /* initialize ncurses */
   initscr();
@@ -288,7 +294,7 @@ int main(int argc, char **argv)
   int label_width = 10;
   int field_row = LINES - 1;
   int field_begin = label_width;
-  int field_width = LINES - label_width;
+  int field_width = COLS - label_width;
 
   mvprintw(starty_src - 1, 0, "Files / directories to move");
   printw("  starty_src=%d starty_dest=%d LINES=%d",
@@ -398,7 +404,10 @@ int main(int argc, char **argv)
       case KEY_ENTER:
       case '\r':
       case '\n':
+        goto work;
+      case ctrl('u'):
       case 'q':
+        endcurses(form, field);
         goto end;
 default_case:
       default:
@@ -420,8 +429,69 @@ default_case:
     ch = getch();
   }
 
-end:
-  endwin();
+work:
+;
+  char *dest_string;
+  if (idest == ndest)
+  {
+    /* get field value */
+    form_driver(form, REQ_VALIDATION);
+    char *tmp = field_buffer(field[1], 0);
+    int last_chr = field_width - 1;
+    while (tmp[last_chr] == ' ')
+      last_chr--;
+    int len = last_chr + 1;
+    tmp[len] = 0;
+    char *field_string = malloc(len + 1);
+    strcpy(field_string, tmp);
+    dest_string = field_string;
+  }
+  else
+  {
+    dest_string = dest_dirs[idest];
+  }
+  endcurses(form, field);
+  /* TODO: special cases: no right to move, no files to move */
+  printf("move files:\n");
+  for (int i = 0; i < nsrc; i++)
+    if (cksrc[i])
+      printf("    %s/%s\n", dir, src_fns[i]);
+  printf("to %s/\n", dest_string);
+  printf("OK? (y/n) ");
+  scanf(" %c",&ch);
+  if (ch == 'y' || ch == 'Y')
+  {
+    printf("#### moving ####\n");
+    struct stat st;
+    if (stat(dest_string, &st) != 0)
+//      mkdir(dest_string, 0777);
+      printf("making directory %s\n", dest_string);
+    else if (st.st_mode & S_IFDIR == 0)
+    {
+      printf("%s exists and is not a directory\n", dest_string);
+      goto end;
+    }
+    int dest_len = strlen(dest_string);
+    for (int i = 0; i < nsrc; i++)
+      if (cksrc[i])
+      {
+        int flen = strlen(src_fns[i]);
+        char *from_path = malloc(dirlen + 1 + flen + 1);
+        sprintf(from_path, "%s/%s", dir, src_fns[i]);
+        char *to_path = malloc(dest_len + 1 + flen + 1);
+        sprintf(to_path, "%s/%s", dest_string, src_fns[i]);
+        printf("moving %s to %s\n", from_path, to_path);
+//        rename(from_path, to_path);
+        free(from_path);
+        free(to_path);
+      }
+  }
+  else
+    printf("do not move\n");
 
+  if (idest == ndest)
+    free(dest_string);
+
+end:
   return 0;
 }
