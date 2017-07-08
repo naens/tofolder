@@ -7,11 +7,15 @@
 #include <sys/stat.h>
 
 #include <ncurses.h>
+#include <form.h>
 
 #include <pedit.h>
 
-void redraw(WINDOW *curr_win, WINDOW *win_src, WINDOW *win_dest, 
-                int isrc, int idest, int nsrc, int ndest)
+#define ctrl(x) ((x) & 0x1f)
+
+void redraw(WINDOW *curr_win, WINDOW *win_src, WINDOW *win_dest, WINDOW* win_form,
+                int isrc, int idest, int *cksrc, int ckdest, int nsrc, int ndest, 
+                FORM  *form, FIELD *field[2])
 {
   mvprintw(0, 0, "curr_win: %s ", (curr_win == win_src) ? "win_src" : "win_dest");
   mvprintw(1, 0, "isrc=%d  ", isrc);
@@ -28,28 +32,98 @@ void redraw(WINDOW *curr_win, WINDOW *win_src, WINDOW *win_dest,
   i[1] = idest;
   for (int w = 0; w < 2; w++)
     for (int l = 0; l < n[w]; l++)
+    {
+      if (windows[w] == win_src)
+       if (cksrc[l])
+          mvwprintw(win_src, l, 0, "   x");
+        else
+          mvwprintw(win_src, l, 0, "    ");
+
+      if (windows[w] == win_dest)
+        if (ckdest == l)
+          mvwprintw(win_dest, l, 0, "   o");
+        else
+          mvwprintw(win_dest, l, 0, "    ");
+
       if (curr_win == windows[w] && l == i[w])
         mvwchgat(windows[w], l, 0, COLS, A_REVERSE, 1, NULL);
       else
         mvwchgat(windows[w], l, 0, COLS, 0, 1, NULL);
-
-  if (curr_win == win_dest && idest == ndest)
-  {
-    mvprintw(3, 0, "in field");
-    wmove(stdscr, LINES - 1, 0);
-    curs_set(1);
-//    mvprintw(LINES - 1, 0, "========");
-  }
+    }
+  if (ckdest == ndest)
+    set_field_buffer(field[0], 0, "   o NEW: ");
   else
-  {
-    curs_set(0);
-    mvprintw(3, 0, "        ");
-  }
-
+    set_field_buffer(field[0], 0, "     NEW: ");
 
   refresh();
   wrefresh(win_src);
   wrefresh(win_dest);
+//  wrefresh(win_form);
+  refresh();
+}
+
+int field_loop(WINDOW *form_window, FORM *form, FIELD *field[])
+{
+  WINDOW *w = form_win(form);
+  curs_set(1);
+  set_current_field(form, field[1]);
+  form_driver(form, 0); // move cursor to field
+  int cq = 0;
+  int ch;
+  for (;;)
+  {
+    ch = wgetch(w);
+    switch(ch)
+    {
+      case ctrl('q'):
+        cq = !cq;
+        break;
+      case ctrl('e'):
+      case KEY_UP:
+      case '\t':
+      case ' ':
+      case KEY_ENTER:
+      case '\r':
+      case '\n':
+        curs_set(0);
+        return ch;
+      case ctrl('s'):
+      case KEY_LEFT:
+        form_driver(form, REQ_PREV_CHAR);
+        break;
+      case ctrl('d'):
+      case KEY_RIGHT:
+        form_driver(form, REQ_NEXT_CHAR);
+        break;
+      case ctrl('g'):
+        form_driver(form, REQ_DEL_CHAR);
+        break;
+      case KEY_BACKSPACE:
+        form_driver(form, REQ_DEL_PREV);
+        break;
+      case 's':
+        if (!cq)
+          goto default_case;
+        form_driver(form, REQ_BEG_FIELD);
+        cq = 0;
+        break;
+      case 'd':
+        if (!cq)
+          goto default_case;
+        form_driver(form, REQ_END_FIELD);
+        cq = 0;
+        break;
+      case 'r':
+        if (!cq)
+          goto default_case;
+        return 30;
+default_case:
+      default:
+        form_driver(form, ch);
+        refresh();
+        wrefresh(w);
+    }
+  }
 }
 
 int main(int argc, char **argv)
@@ -161,6 +235,7 @@ int main(int argc, char **argv)
   /* initialize ncurses */
   initscr();
   cbreak();	
+  noecho();
   keypad(stdscr, TRUE);
   curs_set(0);
 
@@ -207,40 +282,93 @@ int main(int argc, char **argv)
   /* draw windows */
   WINDOW *win_src;
   WINDOW *win_dest;
+  WINDOW *win_form;
+  FORM  *form;
+  FIELD *field[3];
+  int label_width = 10;
+  int field_row = LINES - 1;
+  int field_begin = label_width;
+  int field_width = LINES - label_width;
 
   mvprintw(starty_src - 1, 0, "Files / directories to move");
   printw("  starty_src=%d starty_dest=%d LINES=%d",
                                starty_src, starty_dest, LINES);
   win_src = newwin(height_src, COLS, starty_src, 0);
   for (int i = 0; i < height_src; i++)
-    mvwprintw(win_src, i, 0, "    x %s", src_fns[i]);
+    mvwprintw(win_src, i, 0, "     %s", src_fns[i]);
 
   mvprintw(starty_dest - 1, 0, "Destination");
   win_dest = newwin(height_dest, COLS, starty_dest, 0);
   for (int i = 0; i < height_dest; i++)
-    mvwprintw(win_dest, i, 0, "    o %s", dest_dirs[i]);
+    mvwprintw(win_dest, i, 0, "     %s", dest_dirs[i]);
 
   use_default_colors();
+
+
+
+  win_form = newwin(1, COLS, field_row, 0);
+  keypad(win_form, TRUE);
+//  mvwprintw(win_form, 0, 0, "NNN  new: ");
+//  wrefresh(win_form);
+//  refresh();
+
+  field[0] = new_field(1, label_width, field_row, 0, 0, 0);
+  field_opts_off(field[0], O_ACTIVE);
+  set_field_buffer(field[0], 0, "     NEW: ");
+
+  field[1] = new_field(1, field_width, field_row, field_begin, 0, 0);
+  field_opts_off(field[1], O_AUTOSKIP);
+//  field[1] = new_field(1, COLS - field_begin - 1, field_row, field_begin, 0, 0);
+  set_field_buffer(field[1], 0, lcs);
+  field_opts_off(field[1], O_BLANK); 
+
+  field[2] = NULL;
+
+  form = new_form(field);
+  post_form(form);
+  set_form_win(form, win_form);
+  set_form_sub(form, win_form);
+
+  refresh();
 
   int isrc = 0;
   int idest = 0;
   WINDOW *curr_win = win_src;
 
-  redraw(curr_win, win_src, win_dest, isrc, idest, nsrc, ndest);
-  int ch;
-  while (ch = getch())
+  int cksrc[nsrc];
+  for (int i = 0; i < nsrc; i++)
+    cksrc[i] = 1;
+  int ckdest = 0;
+
+  redraw(curr_win, win_src, win_dest, win_form,
+             isrc, idest, cksrc, ckdest, nsrc, ndest, form, field);
+
+  int cq = 0;
+  int ch = getch();
+  for (;;)
   {
     switch(ch)
     {
+      case ctrl('q'):
+        cq = !cq;
+        break;
       case '\t':
         curr_win = (curr_win == win_src) ? win_dest : win_src;
         break;
+      case ' ':
+        if (curr_win == win_src)
+          cksrc[isrc] = !cksrc[isrc];
+        else
+          ckdest = idest;
+        break;
+      case ctrl('e'):
       case KEY_UP:
         if (curr_win == win_src && isrc >= 1)
           isrc--;
         if (curr_win == win_dest && idest >= 1)
           idest--;
         break;
+      case ctrl('x'):
       case KEY_DOWN:
         if (curr_win == win_src && isrc < nsrc - 1)
           isrc++;
@@ -248,10 +376,48 @@ int main(int argc, char **argv)
           idest++;
         /* idest == ndest => cursor in new dir field (outside scroll) */
         break;
+      case 'r':
+        if (!cq)
+          goto default_case;
+      case 30:
+        cq = 0;
+        if (curr_win == win_src)
+          isrc = 0;
+        if (curr_win == win_dest)
+          idest = 0;
+        break;
+      case 'c':
+        if (!cq)
+          goto default_case;
+        cq = 0;
+        if (curr_win == win_src)
+          isrc = nsrc - 1;
+        if (curr_win == win_dest)
+          idest = ndest;
+        break;
+      case KEY_ENTER:
+      case '\r':
+      case '\n':
       case 'q':
         goto end;
+default_case:
+      default:
+        break;
     }
-    redraw(curr_win, win_src, win_dest, isrc, idest, nsrc, ndest);
+    if (curr_win == win_dest && idest == ndest)
+      ckdest = ndest;
+    redraw(curr_win, win_src, win_dest, win_form,
+               isrc, idest, cksrc, ckdest, nsrc, ndest, form, field);
+    if (curr_win == win_dest && idest == ndest)
+    {
+      mvprintw(6, 0, "form enter");
+      refresh();
+      ch = field_loop(win_form, form, field);
+      mvprintw(6, 0, "form exit ");
+      refresh();
+    }
+    else
+    ch = getch();
   }
 
 end:

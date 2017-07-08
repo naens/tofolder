@@ -3,7 +3,7 @@ CFLAGS=-g
 all: clean tofolder_cli tofolder_gui
 
 tofolder_cli:
-	gcc -g -lncursesw tofolder_cli.c  -L/home/andrei/lib -lpedit -I/home/andrei/include -o tofolder_cli
+	gcc -g -lform -lncursesw tofolder_cli.c  -L/home/andrei/lib -lpedit -I/home/andrei/include -o tofolder_cli
 
 tofolder_gui:
 
