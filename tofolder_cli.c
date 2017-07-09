@@ -363,8 +363,10 @@ int main(int argc, char **argv)
         break;
       case ' ':
         if (curr_win == win_src)
+        /* TODO: uncheck dest (check new?) if src selected same as dest */
           cksrc[isrc] = !cksrc[isrc];
         else
+        /* TODO: uncheck src if dest selected same as src */
           ckdest = idest;
         break;
       case ctrl('e'):
@@ -475,11 +477,24 @@ work:
     for (int i = 0; i < nsrc; i++)
       if (cksrc[i])
       {
+        /* from path */
         int flen = strlen(src_fns[i]);
         char *from_path = malloc(dirlen + 1 + flen + 1);
         sprintf(from_path, "%s/%s", dir, src_fns[i]);
-        char *to_path = malloc(dest_len + 1 + flen + 1);
-        sprintf(to_path, "%s/%s", dest_string, src_fns[i]);
+
+        /* to path */
+        char *to_path;
+        /* if dest starts with '/' then absolute path otherwise relative */
+        if (dest_string[0] == '/')
+        {
+          to_path = malloc(dest_len + 1 + flen + 1);
+          sprintf(to_path, "%s/%s", dest_string, src_fns[i]);
+        }
+        else
+        {
+          to_path = malloc(dirlen + 1 + dest_len + 1 + flen + 1);
+          sprintf(to_path, "%s/%s/%s", dir, dest_string, src_fns[i]);
+        }
         printf("moving %s to %s\n", from_path, to_path);
 //        rename(from_path, to_path);
         free(from_path);
