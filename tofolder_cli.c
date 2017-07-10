@@ -126,6 +126,28 @@ default_case:
   }
 }
 
+/* select src that is in dest => uncheck dest, set idest to new */
+void uncheck_dest(char *src_str, int *ckdest, int ndest, char **dest_dirs)
+{
+  for (int i = 0; i < ndest; i++)
+    if (strcmp(src_str, dest_dirs[i]) == 0)
+    {
+      *ckdest = ndest;
+      break;
+    }
+}
+
+/* select dest that is in src => uncheck corresponding src */
+void uncheck_src(char *dest_str, int *cksrc, int nsrc, char **src_fns)
+{
+  for (int i = 0; i < nsrc; i++)
+    if (strcmp(dest_str, src_fns[i]) == 0)
+    {
+      cksrc[i] = 0;
+      break;
+    }
+}
+
 void endcurses(FORM *form, FIELD **field)
 {
   unpost_form(form);
@@ -345,6 +367,7 @@ int main(int argc, char **argv)
   for (int i = 0; i < nsrc; i++)
     cksrc[i] = 1;
   int ckdest = 0;
+  uncheck_src(dest_dirs[ckdest], cksrc, nsrc, src_fns);
 
   redraw(curr_win, win_src, win_dest, win_form,
              isrc, idest, cksrc, ckdest, nsrc, ndest, form, field);
@@ -363,11 +386,16 @@ int main(int argc, char **argv)
         break;
       case ' ':
         if (curr_win == win_src)
-        /* TODO: uncheck dest (check new?) if src selected same as dest */
+        {
           cksrc[isrc] = !cksrc[isrc];
+          if (cksrc[isrc])
+            uncheck_dest(src_fns[isrc], &ckdest, ndest, dest_dirs);
+        }
         else
-        /* TODO: uncheck src if dest selected same as src */
+        {
           ckdest = idest;
+          uncheck_src(dest_dirs[idest], cksrc, nsrc, src_fns);
+        }
         break;
       case ctrl('e'):
       case KEY_UP:
