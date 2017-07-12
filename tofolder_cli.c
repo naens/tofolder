@@ -50,6 +50,8 @@ void redraw(WINDOW *curr_win, WINDOW *win_src, WINDOW *win_dest, WINDOW* win_for
       else
         mvwchgat(windows[w], l, 0, COLS, 0, 1, NULL);
     }
+
+
   if (ckdest == ndest)
     set_field_buffer(field[0], 0, "   o NEW: ");
   else
@@ -57,9 +59,8 @@ void redraw(WINDOW *curr_win, WINDOW *win_src, WINDOW *win_dest, WINDOW* win_for
 
   refresh();
   wrefresh(win_src);
-  wrefresh(win_dest);
-//  wrefresh(win_form);
-  refresh();
+  if (ndest)
+    wrefresh(win_dest);
 }
 
 int field_loop(WINDOW *form_window, FORM *form, FIELD *field[])
@@ -148,6 +149,149 @@ void uncheck_src(char *dest_str, int *cksrc, int nsrc, char **src_fns)
     }
 }
 
+void get_utf8_lcs(int nfns, char **fns, char *lcs)
+{
+  /* input: utf8 => convert to ucs32 for gst */
+  uint32_t *strs32[nfns];
+  for (int i = 0; i < nfns; i++)
+  {
+    int len8 = utf8strlen(fns[i]);
+    int fnlen = strlen(fns[i]);
+
+    strs32[i] = malloc(sizeof (uint32_t) * (len8 + 1));
+    str_utf8_to_ucs32(fns[i], strs32[i]);
+  }
+
+  /* find lcs */
+  struct gst *gst = gst_new();
+  for (int i = 0; i < nfns; i++)
+  {
+    gst_add_string(gst, strs32[i]);
+    free(strs32[i]);
+  }
+  int ls_cnt;
+  uint32_t **lss;
+  gst_get_longest_strings(gst, &ls_cnt, &lss);
+
+  /* convert lcs to utf8 */
+  if (ls_cnt > 0)
+    str_ucs32_to_utf8(lss[0], lcs);
+  for (int i = 0; i < ls_cnt; i++)
+    free(lss[i]);
+  gst_free(gst);
+}
+
+void  get_nsubfns(char *dir, int *nsubfns)
+{
+  /* list of files containing the lcs substring */
+  DIR *d = opendir(dir);
+  struct dirent *dirent;
+  if (!d)
+    exit(-1);
+
+  /* count */
+  *nsubfns = 0;
+  while ((dirent = readdir(d)) != NULL)
+    (*nsubfns)++;
+  closedir(d);
+}
+
+void get_src_dest(char *dir, char *lcs, int *nsrc, char **src_fns, int *ndest, char **dest_dirs)
+{
+
+  /* list of files containing the lcs substring */
+  DIR *d = opendir(dir);
+  struct dirent *dirent;
+  if (!d)
+    exit(1);
+
+  /* get names of the files of the directory */
+  *nsrc = 0;
+  *ndest = 0;
+  while ((dirent = readdir(d)) != NULL)
+  {
+    if (strstr(dirent->d_name, lcs) == NULL)
+      continue;
+     struct stat statbuf;
+     if (stat(dirent->d_name, &statbuf) != 0)
+       exit(-1);
+     if (S_ISREG(statbuf.st_mode) || S_ISDIR(statbuf.st_mode))
+     {
+       src_fns[*nsrc] = malloc(strlen(dirent->d_name) + 1);
+       strcpy(src_fns[*nsrc], dirent->d_name);
+       (*nsrc)++;
+     }
+     if (S_ISDIR(statbuf.st_mode))
+     {
+       dest_dirs[*ndest] = malloc(strlen(dirent->d_name) + 1);
+       strcpy(dest_dirs[*ndest], dirent->d_name);
+       (*ndest)++;
+     }
+  }
+  closedir(d);
+}
+
+void initcurses()
+{
+  /* initialize ncurses */
+  initscr();
+  cbreak();	
+  noecho();
+  keypad(stdscr, TRUE);
+  curs_set(0);
+}
+
+void initcursvals(int lines_src, int lines_dest, int *starty_src, int *starty_dest,
+                                        int *height_src,  int *height_dest)
+{
+  int height_tot;
+
+  if (lines_src + lines_dest + 4 < LINES)
+  {
+    height_tot = 1 + lines_src + 1 + 1 + lines_dest + 1;
+    *starty_src = LINES - height_tot + 1;
+    *height_src = lines_src;
+    *height_dest = lines_dest;
+    *starty_dest = (LINES - height_tot) + *height_src + 2 + 1;
+  }
+  else 
+  {
+    height_tot = LINES;
+    *starty_src = 1;
+    if (lines_src < (LINES / 2 - 4))
+    {
+      *height_src = lines_src;
+      *height_dest = height_tot - *height_src - 4;
+    }
+    else if (lines_dest < (LINES / 2 - 4))
+    {
+      *height_dest = lines_dest;
+      *height_src = height_tot - *height_dest - 4;
+    }
+    else
+    {
+      *height_src = LINES / 2 - 2;
+      *height_dest = height_tot - *height_src - 4;
+    }
+    *starty_dest = height_tot - *height_dest - 1;
+  }
+}
+
+char *get_field_string(FORM *form, FIELD **field, int field_width)
+{
+  /* get field value */
+  form_driver(form, REQ_VALIDATION);
+  char *tmp = field_buffer(field[1], 0);
+  int last_chr = field_width - 1;
+  while (tmp[last_chr] == ' ')
+    last_chr--;
+  int len = last_chr + 1;
+  tmp[len] = 0;
+  char *field_string = malloc(len + 1);
+    strcpy(field_string, tmp);
+  return field_string;
+}
+
 void endcurses(FORM *form, FIELD **field)
 {
   unpost_form(form);
@@ -165,147 +309,29 @@ int main(int argc, char **argv)
     return 1;
   }
 
-//  printf("input strings:\n");
-  int nargs = argc - 1;
-  uint32_t *strs32[nargs];
-  for (int i = 0; i < nargs; i++)
-  {
-    char *fn = basename(argv[i + 1]);
-    int len8 = utf8strlen(fn);
-    int fnlen = strlen(fn);
-//    printf("    \"%s\"\n", fn);
-
-    strs32[i] = malloc(sizeof (uint32_t) * (len8 + 1));
-    str_utf8_to_ucs32(fn, strs32[i]);
-  }
   char *dir = dirname(argv[1]);
   int dirlen = strlen(dir);
-//  printf("dir: \"%s\"\n", dir);
 
-  struct gst *gst = gst_new();
-
-  for (int i = 0; i < nargs; i++)
-    gst_add_string(gst, strs32[i]);
-
-  int ls_cnt;
-  uint32_t **lss;
-  gst_get_longest_strings(gst, &ls_cnt, &lss);
-
-  if (ls_cnt == 0)
-  {
-    printf("no longest string found\n");
-    gst_free(gst);
-    return 0;
-  }
-  
   char lcs[0x1000];
-  str_ucs32_to_utf8(lss[0], lcs);
-//  printf("found longest string: \"%s\"\n", lcs);
-  for (int i = 0; i < ls_cnt; i++)
-    free(lss[i]);
-  gst_free(gst);
+  get_utf8_lcs(argc - 1, &argv[1], lcs);
 
-  /* list of files containing the lcs substring */
-  DIR *d = opendir(dir);
-  struct dirent *dirent;
-  if (!d)
-    return -1;
-
-  /* count */
-  int nfiles = 0;
-  int ndirs = 0;
-  while ((dirent = readdir(d)) != NULL)
-  {
-    if (strstr(dirent->d_name, lcs) == NULL)
-      continue;
-     struct stat statbuf;
-     if (stat(dirent->d_name, &statbuf) != 0)
-       return -1;
-     if (S_ISREG(statbuf.st_mode))
-       nfiles++;
-     else if (S_ISDIR(statbuf.st_mode))
-       ndirs++;
-
-//     printf("%s\n", dirent->d_name);
-  }
-
-  /* get names */
-  rewinddir(d);
-  char *src_fns[nfiles + ndirs];
-  char *dest_dirs[ndirs];
+  int nsubfns;
   int nsrc = 0;
   int ndest = 0;
-  while ((dirent = readdir(d)) != NULL)
-  {
-    if (strstr(dirent->d_name, lcs) == NULL)
-      continue;
-     struct stat statbuf;
-     if (stat(dirent->d_name, &statbuf) != 0)
-       return -1;
-     if (S_ISREG(statbuf.st_mode) || S_ISDIR(statbuf.st_mode))
-     {
-       src_fns[nsrc] = malloc(strlen(dirent->d_name) + 1);
-       strcpy(src_fns[nsrc], dirent->d_name);
-       nsrc++;
-     }
-     if (S_ISDIR(statbuf.st_mode))
-     {
-       dest_dirs[ndest] = malloc(strlen(dirent->d_name) + 1);
-       strcpy(dest_dirs[ndest], dirent->d_name);
-       ndest++;
-     }
-  }
+  get_nsubfns(dir, &nsubfns);
+  printf("nsubfns=%d\n", nsubfns);
+  char *src_fns[nsubfns];
+  char *dest_dirs[nsubfns];
+  get_src_dest(dir, lcs, &nsrc, src_fns, &ndest, dest_dirs);
 
-  closedir(d);
 
-  /* TODO: special cases: no files to move, no potential destination dir*/
-
-  /* initialize ncurses */
-  initscr();
-  cbreak();	
-  noecho();
-  keypad(stdscr, TRUE);
-  curs_set(0);
-
-  /* initialize values */
-  int lines_src = nsrc;
-  int lines_dest = ndest;
-  int height_tot;
+  initcurses();
   int starty_src;
   int starty_dest;
   int height_src;
   int height_dest;
-
-  if (lines_src + lines_dest + 4 < LINES)
-  {
-    height_tot = 1 + lines_src + 1 + 1 + lines_dest + 1;
-    starty_src = LINES - height_tot + 1;
-    height_src = lines_src;
-    height_dest = lines_dest;
-    starty_dest = (LINES - height_tot) + height_src + 2 + 1;
-  }
-  else 
-  {
-    height_tot = LINES;
-    starty_src = 1;
-    if (lines_src < (LINES / 2 - 4))
-    {
-      height_src = lines_src;
-      height_dest = height_tot - height_src - 4;
-    }
-    else if (lines_dest < (LINES / 2 - 4))
-    {
-      height_dest = lines_dest;
-      height_src = height_tot - height_dest - 4;
-    }
-    else
-    {
-      height_src = LINES / 2 - 2;
-      height_dest = height_tot - height_src - 4;
-    }
-    starty_dest = height_tot - height_dest - 1;
-  }
-
+  initcursvals(nsrc, ndest, &starty_src, &starty_dest,
+                                     &height_src, &height_dest);
 
   /* draw windows */
   WINDOW *win_src;
@@ -317,7 +343,35 @@ int main(int argc, char **argv)
   int field_row = LINES - 1;
   int field_begin = label_width;
   int field_width = COLS - label_width;
+  /* TODO: scroll for src and dest wondow */
 
+
+  use_default_colors();
+
+
+
+
+  field[0] = new_field(1, label_width, field_row, 0, 0, 0);
+  field_opts_off(field[0], O_ACTIVE);
+  set_field_buffer(field[0], 0, "     NEW: ");
+
+  /* TODO: scroll for field */
+  field[1] = new_field(1, field_width, field_row, field_begin, 0, 0);
+  field_opts_off(field[1], O_AUTOSKIP);
+//  field[1] = new_field(1, COLS - field_begin - 1, field_row, field_begin, 0, 0);
+  set_field_buffer(field[1], 0, lcs);
+  field_opts_off(field[1], O_BLANK); 
+
+  field[2] = NULL;
+
+  win_form = newwin(1, COLS, field_row, 0);
+  keypad(win_form, TRUE);
+  form = new_form(field);
+  post_form(form);
+  set_form_win(form, win_form);
+  set_form_sub(form, win_form);
+
+  mvprintw(5, 0, "height_dest=%d\n", height_dest);
   mvprintw(starty_src - 1, 0, "Files / directories to move");
   printw("  starty_src=%d starty_dest=%d LINES=%d",
                                starty_src, starty_dest, LINES);
@@ -330,42 +384,14 @@ int main(int argc, char **argv)
   for (int i = 0; i < height_dest; i++)
     mvwprintw(win_dest, i, 0, "     %s", dest_dirs[i]);
 
-  use_default_colors();
-
-
-
-  win_form = newwin(1, COLS, field_row, 0);
-  keypad(win_form, TRUE);
-//  mvwprintw(win_form, 0, 0, "NNN  new: ");
-//  wrefresh(win_form);
-//  refresh();
-
-  field[0] = new_field(1, label_width, field_row, 0, 0, 0);
-  field_opts_off(field[0], O_ACTIVE);
-  set_field_buffer(field[0], 0, "     NEW: ");
-
-  field[1] = new_field(1, field_width, field_row, field_begin, 0, 0);
-  field_opts_off(field[1], O_AUTOSKIP);
-//  field[1] = new_field(1, COLS - field_begin - 1, field_row, field_begin, 0, 0);
-  set_field_buffer(field[1], 0, lcs);
-  field_opts_off(field[1], O_BLANK); 
-
-  field[2] = NULL;
-
-  form = new_form(field);
-  post_form(form);
-  set_form_win(form, win_form);
-  set_form_sub(form, win_form);
-
-  refresh();
-
   int isrc = 0;
   int idest = 0;
   WINDOW *curr_win = win_src;
 
   int cksrc[nsrc];
   for (int i = 0; i < nsrc; i++)
-    cksrc[i] = 1;
+    cksrc[i] = (ndest == 0 && strcmp(src_fns[i], lcs) == 0) ? 0 : 1;
+  
   int ckdest = 0;
   uncheck_src(dest_dirs[ckdest], cksrc, nsrc, src_fns);
 
@@ -387,9 +413,12 @@ int main(int argc, char **argv)
       case ' ':
         if (curr_win == win_src)
         {
-          cksrc[isrc] = !cksrc[isrc];
+          char *field_string = get_field_string(form, field, field_width);
+          if (!(idest == ndest && strcmp(src_fns[isrc], field_string) == 0))
+            cksrc[isrc] = !cksrc[isrc];
           if (cksrc[isrc])
             uncheck_dest(src_fns[isrc], &ckdest, ndest, dest_dirs);
+          free(field_string);
         }
         else
         {
@@ -444,19 +473,20 @@ default_case:
         break;
     }
     if (curr_win == win_dest && idest == ndest)
+    {
+      char *field_string = get_field_string(form, field, field_width);
+      uncheck_src(field_string, cksrc, nsrc, src_fns);
+      free(field_string);
+
       ckdest = ndest;
+    }
+
     redraw(curr_win, win_src, win_dest, win_form,
                isrc, idest, cksrc, ckdest, nsrc, ndest, form, field);
     if (curr_win == win_dest && idest == ndest)
-    {
-      mvprintw(6, 0, "form enter");
-      refresh();
       ch = field_loop(win_form, form, field);
-      mvprintw(6, 0, "form exit ");
-      refresh();
-    }
     else
-    ch = getch();
+      ch = getch();
   }
 
 work:
@@ -464,16 +494,7 @@ work:
   char *dest_string;
   if (idest == ndest)
   {
-    /* get field value */
-    form_driver(form, REQ_VALIDATION);
-    char *tmp = field_buffer(field[1], 0);
-    int last_chr = field_width - 1;
-    while (tmp[last_chr] == ' ')
-      last_chr--;
-    int len = last_chr + 1;
-    tmp[len] = 0;
-    char *field_string = malloc(len + 1);
-    strcpy(field_string, tmp);
+    char *field_string = get_field_string(form, field, field_width);
     dest_string = field_string;
   }
   else
