@@ -353,7 +353,13 @@ int main(int argc, char **argv)
   char *dir = dirname(argv[1]);
   int dirlen = strlen(dir);
 
-  /* TODO: check files or folders exist */
+  struct stat st;
+  for (int i = 1; i < argc; i++)
+    if (stat(argv[i], &st) != 0)
+    {
+      printf("file \"%s\" doesn't exist\n", argv[i]);
+      return 1;
+    }
 
   char lcs[0x1000];
   get_utf8_lcs(argc - 1, &argv[1], lcs);
