@@ -301,6 +301,47 @@ void endcurses(FORM *form, FIELD **field)
   endwin();
 }
 
+int rec_mkdir(char *d_str)
+{
+  /* short version using "system" */
+//  sprintf(mkcmd, "mkdir -p '%s'", d_str);
+//  system(mkcmd);
+
+  /* improve: do no use system */
+  /* find highest existing directory */
+  char buf[strlen(d_str) + 1];
+  char *ed = buf;
+  strcpy(ed, d_str);
+  int to_create[0x100];
+  to_create[0] = strlen(d_str);
+  int i = 1;
+  
+  struct stat st;
+  while (stat(ed, &st) != 0)
+  {
+    ed = dirname(ed);
+    to_create[i] = strlen(ed);
+    i++;
+  }
+  if (st.st_mode & S_IFDIR == 0) /* exists but not dir */
+    return -1;
+  /* add missing levels */
+  char d[0x100];
+  memcpy(d, d_str, to_create[i - 1]);
+  i--;
+  while (i > 0)
+  {
+    memcpy(&d[to_create[i]], &d_str[to_create[i]], to_create[i - 1] - to_create[i]);
+    d[to_create[i - 1]] = 0;
+    
+//    if (mkdir(d, S_IRWXU) == -1)
+//      return -1;
+    printf("making directory %s\n", d);
+    i--;
+  }
+  return 0;
+}
+
 int main(int argc, char **argv)
 {
   if (argc == 1)
@@ -311,6 +352,8 @@ int main(int argc, char **argv)
 
   char *dir = dirname(argv[1]);
   int dirlen = strlen(dir);
+
+  /* TODO: check files or folders exist */
 
   char lcs[0x1000];
   get_utf8_lcs(argc - 1, &argv[1], lcs);
@@ -502,7 +545,7 @@ work:
     dest_string = dest_dirs[idest];
   }
   endcurses(form, field);
-  /* TODO: special cases: no right to move, no files to move */
+  /* TODO: special cases: no right to move... */
   printf("move files:\n");
   for (int i = 0; i < nsrc; i++)
     if (cksrc[i])
@@ -513,15 +556,8 @@ work:
   if (ch == 'y' || ch == 'Y')
   {
     printf("#### moving ####\n");
-    struct stat st;
-    if (stat(dest_string, &st) != 0)
-//      mkdir(dest_string, 0777);
-      printf("making directory %s\n", dest_string);
-    else if (st.st_mode & S_IFDIR == 0)
-    {
-      printf("%s exists and is not a directory\n", dest_string);
+    if (rec_mkdir(dest_string) != 0)
       goto end;
-    }
     int dest_len = strlen(dest_string);
     for (int i = 0; i < nsrc; i++)
       if (cksrc[i])
