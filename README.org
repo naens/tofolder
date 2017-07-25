@@ -75,8 +75,9 @@ Using ~ncurses~:
 ~to do~
 
 * to do items
- * libpedit
- * cli
+ * ncurses
+   - test scroll
+   - unicode
  * gui (using GTK)
  * tofolder executable
  * gui linux integration
