@@ -443,6 +443,10 @@ int main(int argc, char **argv)
   
   int ckdest = 0;
   uncheck_src(dest_dirs[ckdest], cksrc, nsrc, src_fns);
+ 
+  scrollok(win_src, TRUE);
+  scrollok(win_dest, TRUE);
+  scrollok(win_form, TRUE);
 
   redraw(curr_win, win_src, win_dest, win_form,
              isrc, idest, cksrc, ckdest, nsrc, ndest, form, field);
