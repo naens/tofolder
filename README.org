@@ -27,7 +27,7 @@ before being selected.  By default all the files and directories are
 selected.
 
 ** Work
-The program, using the gst module, finds the longuest common substring of
+The program, using the gst module, finds the longest common substring of
 the file names and proposes it as a name for the subfolder.  If there are
 more files than selected that match the substring, they are also selected.
 
