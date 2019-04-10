@@ -47,12 +47,12 @@ for the loation of the subfolder.
 Using ~ncurses~:
 #+BEGIN_SRC
 +---------------------+
-| List of files       |
+| List of files        |
 +---------------------+
-|    x <file1>        |
-|    x <file2>        |
-|      <file3>        |
-|    x <file4>        |
+|    x <file1>         |
+|    x <file2>         |
+|      <file3>         |
+|    x <file4>         |
 |    ...              |
 +=====================+
 | List of directories |
